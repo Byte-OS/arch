@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="This is a crate to help you supporting multiple platforms."><title>polyhal - Rust</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../static.files/rustdoc-e6a78389201e676c.css"><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="polyhal" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0-nightly (87e1447aa 2023-11-30)" data-channel="nightly" data-search-js="search-5a66c239c06b3a66.js" data-settings-js="settings-fe03fdc259827cd2.js" ><script src="../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-77dede896d6ac08e.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc mod crate"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../polyhal/index.html">polyhal</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><ul class="block">
+            <li><a id="all-types" href="all.html">All Items</a></li></ul><section><ul class="block"><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li><li><a href="#attributes">Attribute Macros</a></li></ul></section></div></nav><main><div class="width-limiter"><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="main-heading"><h1>Crate <a class="mod" href="#">polyhal</a><button id="copy-path" title="Copy item path to clipboard"><img src="../static.files/clipboard-7571035ce49a181d.svg" width="19" height="18" alt="Copy item path"></button></h1><span class="out-of-band"><a class="src" href="../src/polyhal/lib.rs.html#1-286">source</a> · <button id="toggle-all-docs" title="collapse all docs">[<span>&#x2212;</span>]</button></span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>This is a crate to help you supporting multiple platforms.</p>
+<p>If you want to use this crate, you should implement the following trait in your code.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="doccomment">/// impl
+</span><span class="kw">pub struct </span>PageAllocImpl;
+
+<span class="kw">impl </span>PageAlloc <span class="kw">for </span>PageAllocImpl {
+    <span class="kw">fn </span>alloc(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PhysPage {
+        frame_alloc()
+    }
+
+    <span class="kw">fn </span>dealloc(<span class="kw-2">&amp;</span><span class="self">self</span>, ppn: PhysPage) {
+        frame::frame_dealloc(ppn)
+    }
+}
+
+<span class="doccomment">/// kernel interrupt
+</span><span class="attr">#[polyhal::arch_interrupt]
+</span><span class="kw">fn </span>kernel_interrupt(ctx: <span class="kw-2">&amp;mut </span>TrapFrame, trap_type: TrapType) {
+    <span class="comment">// println!(&quot;trap_type @ {:x?} {:#x?}&quot;, trap_type, ctx);
+    </span><span class="kw">match </span>trap_type {
+        Breakpoint =&gt; <span class="kw">return</span>,
+        UserEnvCall =&gt; {
+            <span class="comment">// jump to next instruction anyway
+            </span>ctx.syscall_ok();
+            <span class="macro">log::info!</span>(<span class="string">&quot;Handle a syscall&quot;</span>);
+        }
+        StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) =&gt; {
+            <span class="macro">log::info!</span>(<span class="string">&quot;page fault&quot;</span>);
+        }
+        IllegalInstruction(<span class="kw">_</span>) =&gt; {
+            <span class="macro">log::info!</span>(<span class="string">&quot;illegal instruction&quot;</span>);
+        }
+        Time =&gt; {
+            <span class="macro">log::info!</span>(<span class="string">&quot;Timer&quot;</span>);
+        }
+        <span class="kw">_ </span>=&gt; {
+            <span class="macro">log::warn!</span>(<span class="string">&quot;unsuspended trap type: {:?}&quot;</span>, trap_type);
+        }
+    }
+}
+
+<span class="attr">#[polyhal::arch_entry]
+</span><span class="doccomment">/// kernel main function, entry point.
+</span><span class="kw">fn </span>main(hartid: usize) {
+    <span class="kw">if </span>hartid != <span class="number">0 </span>{
+        <span class="kw">return</span>;
+    }
+
+    <span class="macro">println!</span>(<span class="string">&quot;[kernel] Hello, world!&quot;</span>);
+    allocator::init_allocator();
+    logging::init(<span class="prelude-val">Some</span>(<span class="string">&quot;trace&quot;</span>));
+    <span class="macro">println!</span>(<span class="string">&quot;init logging&quot;</span>);
+
+    <span class="comment">// Init page alloc for polyhal
+    </span>polyhal::init(<span class="kw-2">&amp;</span>PageAllocImpl);
+
+    get_mem_areas().into_iter().for_each(|(start, size)| {
+        <span class="macro">println!</span>(<span class="string">&quot;init memory region {:#x} - {:#x}&quot;</span>, start, start + size);
+        frame::add_frame_range(start, start + size);
+    });
+    <span class="macro">panic!</span>(<span class="string">&quot;end of rust_main!&quot;</span>);
+}
+</code></pre></div>
+<p>The main(hardid: usize) is the entry point.</p>
+<p>You can find details in the example.</p>
+<p>In this crate you can find some interfaces to use.
+These interfaces are classified into some structures.</p>
+<p><a href="addr/struct.PhysPage.html" title="struct polyhal::addr::PhysPage">PhysPage</a>: PhysicalPage And its associated functions.</p>
+<p><a href="addr/struct.PhysAddr.html" title="struct polyhal::addr::PhysAddr">PhysAddr</a>: PhysicalAddr And its associated functions.</p>
+<p><a href="addr/struct.VirtPage.html" title="struct polyhal::addr::VirtPage">VirtPage</a>: VirtualPage And its associated functions.</p>
+<p><a href="addr/struct.VirtAddr.html" title="struct polyhal::addr::VirtAddr">VirtAddr</a>: VirtualAddr And its associated functions.</p>
+<p><a href="irq/struct.IRQ.html" title="struct polyhal::irq::IRQ">IRQ</a>: Interrupt ReQuest management, includes enable and disable.</p>
+<p><a href="mem/struct.Barrier.html" title="struct polyhal::mem::Barrier">Barrier</a>: Memory barrier operations.</p>
+<p><a href="multicore/struct.MultiCore.html" title="struct polyhal::multicore::MultiCore">MultiCore</a>: MultiCore operations. Now only <a href="multicore/struct.MultiCore.html#method.boot_all" title="associated function polyhal::multicore::MultiCore::boot_all">multicore::MultiCore::boot_all</a> is available.</p>
+<p><a href="pagetable/struct.PageTable.html" title="struct polyhal::pagetable::PageTable">PageTable</a>: PageTable and its associated functions.</p>
+<p><a href="pagetable/struct.MappingFlags.html" title="struct polyhal::pagetable::MappingFlags">MappingFlags</a>: MappingFlags, This is an abstraction of pagetable flags.</p>
+<p><a href="pagetable/struct.TLB.html" title="struct polyhal::pagetable::TLB">TLB</a>: TLB operations.</p>
+<p><a href="pagetable/struct.PageTableWrapper.html" title="struct polyhal::pagetable::PageTableWrapper">PageTableWrapper</a>: PageTableWrapper. It will dealloc all pagetable leaf when it was dropping.</p>
+<p><a href="time/struct.Time.html" title="struct polyhal::time::Time">Time</a>: Time and its associated functions.</p>
+<p><a href="instruction/struct.Instruction.html" title="struct polyhal::instruction::Instruction">Instruction</a>: Some platform instruction.</p>
+<p>There also provides a debugging console(recommanded only for debugging).</p>
+<p><a href="debug/struct.DebugConsole.html" title="struct polyhal::debug::DebugConsole">DebugConsole</a>: A console for debugging.</p>
+<p>This crate provides a <a href="struct.TrapFrame.html" title="struct polyhal::TrapFrame">TrapFrame</a>, you can operate it through index with <a href="enum.TrapFrameArgs.html" title="enum polyhal::TrapFrameArgs">TrapFrameArgs</a>.</p>
+<p>If you are using kernel task. You should to enable feature <code>kcontext</code>.
+Then you can use kernel task context structure <a href="struct.KContext.html" title="struct polyhal::KContext">KContext</a>, and manipulate it with <a href="enum.KContextArgs.html" title="enum polyhal::KContextArgs">KContextArgs</a>.</p>
+<p>You can switch kcontext through <a href="fn.context_switch_pt.html" title="fn polyhal::context_switch_pt">context_switch_pt</a> or <a href="fn.context_switch.html" title="fn polyhal::context_switch">context_switch</a></p>
+<p>There are also some consts.</p>
+<p><a href="constant.VIRT_ADDR_START.html" title="constant polyhal::VIRT_ADDR_START">VIRT_ADDR_START</a>: This is a higher half kernel offset address.
+<a href="constant.USER_VADDR_END.html" title="constant polyhal::USER_VADDR_END">USER_VADDR_END</a>: End of the user address range.
+<a href="constant.PAGE_SIZE.html" title="constant polyhal::PAGE_SIZE">PAGE_SIZE</a>: The size of the page.</p>
+<p>You can get some device information using the functions below.
+<a href="fn.get_mem_areas.html" title="fn polyhal::get_mem_areas">get_mem_areas</a>: Get the avaliable memorys.
+<a href="fn.get_fdt.html" title="fn polyhal::get_fdt">get_fdt</a>: Get the Fdt structure(fdt is a rust dtb operation crate).
+<a href="fn.get_cpu_num.html" title="fn polyhal::get_cpu_num">get_cpu_num</a>: Get the number of cpus.</p>
+<p>TIPS: You should have finished <a href="fn.init.html" title="fn polyhal::init">init</a> before using <a href="fn.get_mem_areas.html" title="fn polyhal::get_mem_areas">get_mem_areas</a> and <a href="fn.get_fdt.html" title="fn polyhal::get_fdt">get_fdt</a>.</p>
+</div></details><h2 id="modules" class="section-header"><a href="#modules">Modules</a></h2><ul class="item-table"><li><div class="item-name"><a class="mod" href="addr/index.html" title="mod polyhal::addr">addr</a></div></li><li><div class="item-name"><a class="mod" href="api/index.html" title="mod polyhal::api">api</a></div></li><li><div class="item-name"><a class="mod" href="consts/index.html" title="mod polyhal::consts">consts</a></div></li><li><div class="item-name"><a class="mod" href="debug/index.html" title="mod polyhal::debug">debug</a></div></li><li><div class="item-name"><a class="mod" href="instruction/index.html" title="mod polyhal::instruction">instruction</a></div></li><li><div class="item-name"><a class="mod" href="irq/index.html" title="mod polyhal::irq">irq</a></div></li><li><div class="item-name"><a class="mod" href="mem/index.html" title="mod polyhal::mem">mem</a></div></li><li><div class="item-name"><a class="mod" href="multicore/index.html" title="mod polyhal::multicore">multicore</a></div></li><li><div class="item-name"><a class="mod" href="pagetable/index.html" title="mod polyhal::pagetable">pagetable</a></div></li><li><div class="item-name"><a class="mod" href="percpu/index.html" title="mod polyhal::percpu">percpu</a></div></li><li><div class="item-name"><a class="mod" href="time/index.html" title="mod polyhal::time">time</a></div></li><li><div class="item-name"><a class="mod" href="utils/index.html" title="mod polyhal::utils">utils</a></div></li></ul><h2 id="structs" class="section-header"><a href="#structs">Structs</a></h2><ul class="item-table"><li><div class="item-name"><a class="struct" href="struct.KContext.html" title="struct polyhal::KContext">KContext</a></div><div class="desc docblock-short">Kernel Context</div></li><li><div class="item-name"><a class="struct" href="struct.TrapFrame.html" title="struct polyhal::TrapFrame">TrapFrame</a></div></li></ul><h2 id="enums" class="section-header"><a href="#enums">Enums</a></h2><ul class="item-table"><li><div class="item-name"><a class="enum" href="enum.KContextArgs.html" title="enum polyhal::KContextArgs">KContextArgs</a></div><div class="desc docblock-short">Kernel Context Arg Type.</div></li><li><div class="item-name"><a class="enum" href="enum.TrapFrameArgs.html" title="enum polyhal::TrapFrameArgs">TrapFrameArgs</a></div><div class="desc docblock-short">Trap Frame Arg Type</div></li><li><div class="item-name"><a class="enum" href="enum.TrapType.html" title="enum polyhal::TrapType">TrapType</a></div></li></ul><h2 id="constants" class="section-header"><a href="#constants">Constants</a></h2><ul class="item-table"><li><div class="item-name"><a class="constant" href="constant.MULTI_CORE_AREA.html" title="constant polyhal::MULTI_CORE_AREA">MULTI_CORE_AREA</a></div><div class="desc docblock-short">Every core has a unique area of memory.
+Just using pagetable to map multi core area.
+Area size: 0x100_0000 (16MBytes)</div></li><li><div class="item-name"><a class="constant" href="constant.MULTI_CORE_AREA_SIZE.html" title="constant polyhal::MULTI_CORE_AREA_SIZE">MULTI_CORE_AREA_SIZE</a></div></li><li><div class="item-name"><a class="constant" href="constant.PAGE_SIZE.html" title="constant polyhal::PAGE_SIZE">PAGE_SIZE</a></div></li><li><div class="item-name"><a class="constant" href="constant.SIG_RETURN_ADDR.html" title="constant polyhal::SIG_RETURN_ADDR">SIG_RETURN_ADDR</a></div></li><li><div class="item-name"><a class="constant" href="constant.USER_VADDR_END.html" title="constant polyhal::USER_VADDR_END">USER_VADDR_END</a></div></li><li><div class="item-name"><a class="constant" href="constant.VIRT_ADDR_START.html" title="constant polyhal::VIRT_ADDR_START">VIRT_ADDR_START</a></div></li></ul><h2 id="traits" class="section-header"><a href="#traits">Traits</a></h2><ul class="item-table"><li><div class="item-name"><a class="trait" href="trait.PageAlloc.html" title="trait polyhal::PageAlloc">PageAlloc</a></div></li></ul><h2 id="functions" class="section-header"><a href="#functions">Functions</a></h2><ul class="item-table"><li><div class="item-name"><a class="fn" href="fn.arch_init.html" title="fn polyhal::arch_init">arch_init</a></div></li><li><div class="item-name"><a class="fn" href="fn.context_switch.html" title="fn polyhal::context_switch">context_switch</a><sup title="unsafe function">⚠</sup></div><div class="desc docblock-short">Context Switch</div></li><li><div class="item-name"><a class="fn" href="fn.context_switch_pt.html" title="fn polyhal::context_switch_pt">context_switch_pt</a><sup title="unsafe function">⚠</sup></div><div class="desc docblock-short">Context Switch With Page Table</div></li><li><div class="item-name"><a class="fn" href="fn.get_cpu_num.html" title="fn polyhal::get_cpu_num">get_cpu_num</a></div><div class="desc docblock-short">Get the number of cpus</div></li><li><div class="item-name"><a class="fn" href="fn.get_fdt.html" title="fn polyhal::get_fdt">get_fdt</a></div><div class="desc docblock-short">Get the fdt</div></li><li><div class="item-name"><a class="fn" href="fn.get_mem_areas.html" title="fn polyhal::get_mem_areas">get_mem_areas</a></div><div class="desc docblock-short">Get the memory area, this function should be called after initialization</div></li><li><div class="item-name"><a class="fn" href="fn.hart_id.html" title="fn polyhal::hart_id">hart_id</a></div></li><li><div class="item-name"><a class="fn" href="fn.init.html" title="fn polyhal::init">init</a></div><div class="desc docblock-short">Init arch with page allocator, like log crate
+Please initialize the allocator before calling this function.</div></li><li><div class="item-name"><a class="fn" href="fn.kernel_page_table.html" title="fn polyhal::kernel_page_table">kernel_page_table</a></div></li><li><div class="item-name"><a class="fn" href="fn.read_current_tp.html" title="fn polyhal::read_current_tp">read_current_tp</a></div></li><li><div class="item-name"><a class="fn" href="fn.run_user_task.html" title="fn polyhal::run_user_task">run_user_task</a></div><div class="desc docblock-short">Return Some(()) if it was interrupt by syscall, otherwise None.</div></li><li><div class="item-name"><a class="fn" href="fn.run_user_task_forever.html" title="fn polyhal::run_user_task_forever">run_user_task_forever</a></div></li><li><div class="item-name"><a class="fn" href="fn.shutdown.html" title="fn polyhal::shutdown">shutdown</a></div><div class="desc docblock-short">调用 SBI_SHUTDOWN 来关闭操作系统（直接退出 QEMU）</div></li><li><div class="item-name"><a class="fn" href="fn.switch_to_kernel_page_table.html" title="fn polyhal::switch_to_kernel_page_table">switch_to_kernel_page_table</a></div></li><li><div class="item-name"><a class="fn" href="fn.wfi.html" title="fn polyhal::wfi">wfi</a></div></li></ul><h2 id="attributes" class="section-header"><a href="#attributes">Attribute Macros</a></h2><ul class="item-table"><li><div class="item-name"><a class="attr" href="attr.arch_entry.html" title="attr polyhal::arch_entry">arch_entry</a></div></li><li><div class="item-name"><a class="attr" href="attr.arch_interrupt.html" title="attr polyhal::arch_interrupt">arch_interrupt</a></div></li></ul></section></div></main></body></html>
